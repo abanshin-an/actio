@@ -1,0 +1,119 @@
+erDiagram
+    COLUMNS {
+        int id PK
+        string title
+        int position
+        int system
+        datetime created_at
+    }
+
+    PROJECTS {
+        int id PK
+        string name
+    }
+
+    CATEGORIES {
+        int id PK
+        string name
+    }
+
+    TASKS {
+        int id PK
+        string subject
+        string description_md
+        string color
+        string priority
+        date start_date
+        date end_date
+        int planned_pomodoros
+        int spent_pomodoros
+        int pomodoro_work_minutes
+        int is_completed
+        int is_active
+        int column_id FK
+        int project_id FK
+        int category_id FK
+        int sort_order
+        datetime created_at
+        datetime completed_at
+    }
+
+    TASK_ATTRIBUTES {
+        int task_id PK, FK
+        string key PK
+        string value
+    }
+
+    TASK_CATEGORIES {
+        int task_id PK, FK
+        int category_id PK, FK
+    }
+
+    TASK_MOVES {
+        int id PK
+        int task_id FK
+        int from_column_id FK
+        int to_column_id FK
+        datetime moved_at
+    }
+
+    POMODORO_SESSIONS {
+        int id PK
+        int task_id FK
+        string kind
+        int duration_minutes
+        datetime started_at
+        datetime ended_at
+        int was_interrupted
+        string task_snapshot
+    }
+
+    SPENT_EVENTS {
+        int id PK
+        int task_id FK
+        int amount
+        datetime event_at
+        string source
+    }
+
+    BACKLOG_TASKS {
+        int task_id PK, FK
+        datetime added_at
+    }
+
+    ARCHIVE_TASKS {
+        int id PK
+        int task_id
+        string subject
+        string description_md
+        string color
+        string priority
+        date start_date
+        date end_date
+        int planned_pomodoros
+        int spent_pomodoros
+        string project_name
+        string category_name
+        datetime completed_at
+        datetime archived_at
+    }
+
+    SETTINGS {
+        string key PK
+        string value
+    }
+
+    COLUMNS ||--o{ TASKS : "column_id"
+    PROJECTS ||--o{ TASKS : "project_id"
+    CATEGORIES ||--o{ TASKS : "category_id"
+
+    TASKS ||--o{ TASK_ATTRIBUTES : "task_id"
+    TASKS ||--o{ TASK_CATEGORIES : "task_id"
+    CATEGORIES ||--o{ TASK_CATEGORIES : "category_id"
+    TASKS ||--o{ TASK_MOVES : "task_id"
+    COLUMNS ||--o{ TASK_MOVES : "from_column_id"
+    COLUMNS ||--o{ TASK_MOVES : "to_column_id"
+
+    TASKS ||--o{ POMODORO_SESSIONS : "task_id"
+    TASKS ||--o{ SPENT_EVENTS : "task_id"
+    TASKS ||--|| BACKLOG_TASKS : "task_id"

@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>actio</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-theme="light">
+    <header class="app-header">
+      <div>
+        <h1 data-i18n="appTitle">actio</h1>
+        <p data-i18n="appSubtitle">Управление задачами, фокусом и производительностью</p>
+      </div>
+      <div class="header-active-task" id="header-active-task"></div>
+    </header>
+
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="kanban" data-i18n="tabKanban">Канбан</button>
+      <button class="tab-btn" data-tab="backlog" data-i18n="tabBacklog">Бэклог</button>
+      <button class="tab-btn" data-tab="calendar" data-i18n="tabCalendar">Календарь</button>
+      <button class="tab-btn" data-tab="pomodoro" data-i18n="tabPomodoro">Помодоро</button>
+      <button class="tab-btn" data-tab="analytics" data-i18n="tabAnalytics">Анализ</button>
+      <button class="tab-btn" data-tab="archive" data-i18n="tabArchive">Архив</button>
+      <button class="tab-btn" data-tab="settings" data-i18n="tabSettings">Настройки</button>
+    </nav>
+
+    <main>
+      <section class="tab-content active" id="tab-kanban">
+        <aside class="sidebar">
+          <div class="panel">
+            <h2 data-i18n="filters">Фильтры</h2>
+            <div class="filters-grid">
+              <input id="filter-description" data-i18n-placeholder="filterDescription" placeholder="Фрагмент описания" />
+              <select id="filter-project"></select>
+              <div class="chips-field">
+                <div class="chips-field-title" data-i18n="category">Категория</div>
+                <div id="filter-category-chips" class="chips-list"></div>
+              </div>
+              <select id="filter-priority">
+                <option value="" data-i18n="anyPriority">Любой приоритет</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+              <input type="date" id="filter-start-date" />
+              <input id="filter-attr-key" data-i18n-placeholder="attrKey" placeholder="Ключ атрибута" />
+              <input id="filter-attr-value" data-i18n-placeholder="attrValue" placeholder="Значение атрибута" />
+            </div>
+            <div class="actions-row">
+              <button id="apply-filters-btn" data-i18n="apply">Применить</button>
+              <button id="reset-filters-btn" class="btn-muted" data-i18n="reset">Сбросить</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 data-i18n="addColumn">Добавить колонку</h2>
+            <div class="add-column-row">
+              <input id="new-column-title" data-i18n-placeholder="newColumn" placeholder="Новая колонка" />
+              <button id="add-column-btn" data-i18n="addColumn">Добавить колонку</button>
+            </div>
+          </div>
+
+        </aside>
+
+        <section class="board-section">
+          <div class="panel board-quick-add">
+            <h2 data-i18n="quickAdd">Быстрый ввод todo.txt</h2>
+            <div class="quick-add-row">
+              <input id="todotxt-input" placeholder="(A) Подготовить отчет +Work @office due:2026-02-20" />
+              <button id="todotxt-add-btn" data-i18n="add">Добавить</button>
+            </div>
+          </div>
+          <div id="kanban-board" class="kanban-board"></div>
+        </section>
+      </section>
+
+      <section class="tab-content" id="tab-pomodoro">
+        <div class="pomodoro-layout">
+          <div class="panel timer-panel">
+            <h2 data-i18n="pomodoroTimer">Помодоро-таймер</h2>
+            <div class="timer-kind" id="timer-kind">work</div>
+            <div class="timer-display" id="timer-display">25:00</div>
+            <div class="countdown-gauge-panel">
+              <svg class="countdown-gauge" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="countdown-gauge-track" cx="60" cy="60" r="52"></circle>
+                <circle id="countdown-gauge-ring" class="countdown-gauge-ring" cx="60" cy="60" r="52"></circle>
+                <circle id="countdown-gauge-ring-gloss" class="countdown-gauge-ring-gloss" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="countdown-gauge-center">
+                <div class="countdown-gauge-label" data-i18n="countdownTitle">Отсчет</div>
+                <div id="countdown-gauge-value" class="countdown-gauge-value">25:00</div>
+              </div>
+            </div>            <div class="timer-meta" id="timer-meta"></div>
+            <div class="actions-row pomodoro-actions-row">
+              <button type="button" id="timer-stop-btn" class="btn-muted" data-i18n="interrupt">Прервать</button>
+              <button type="button" id="timer-mark-done-btn" data-i18n="markDone">Отметить задачу выполненной</button>
+            </div>
+          </div>
+
+          <div class="panel active-task-panel">
+            <h2 data-i18n="currentTask">Текущая задача</h2>
+            <div id="pomodoro-active-task" class="active-task-card"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-calendar">
+        <div class="panel calendar-panel">
+          <h2 data-i18n="calendarTitle">Календарь выполнения помидоров</h2>
+          <div id="calendar-weeks" class="calendar-weeks"></div>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-analytics">
+        <div class="analytics-layout">
+          <aside class="analytics-sidebar">
+            <div class="panel analytics-toolbar">
+              <h2 data-i18n="analyticsFilters">Фильтры анализа</h2>
+              <div class="filters-grid analytics-filters">
+                <select id="analytics-filter-project"></select>
+                <div class="chips-field">
+                  <div class="chips-field-title" data-i18n="category">Категория</div>
+                  <div id="analytics-filter-category-chips" class="chips-list"></div>
+                </div>
+                <select id="analytics-filter-priority">
+                  <option value="" data-i18n="anyPriority">Любой приоритет</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+                <button id="analytics-apply-btn" data-i18n="apply">Применить</button>
+              </div>
+            </div>
+          </aside>
+
+          <div class="analytics-content">
+            <div class="analytics-main-grid">
+              <div class="analytics-left-stack">
+                <div class="panel">
+                  <h3 data-i18n="activityHeatmap">Тепловая карта активности</h3>
+                  <div id="heatmap" class="heatmap"></div>
+                </div>
+
+                <div class="panel metrics-panel">
+                  <h3 data-i18n="flowMetrics">Метрики потока</h3>
+                  <div id="flow-metrics" class="metrics-grid"></div>
+                </div>
+
+                <div class="panel">
+                  <h3 data-i18n="wipDynamics">Динамика WIP (30 дней)</h3>
+                  <div id="wip-chart" class="bar-chart"></div>
+                </div>
+
+                <div class="panel">
+                  <h3>План/факт по задачам</h3>
+                  <div id="deviation-chart-task" class="deviation-chart deviation-vertical"></div>
+                </div>
+              </div>
+
+              
+              <div class="analytics-right-stack">
+                <div class="panel">
+                  <h3>План/факт по приоритетам</h3>
+                  <div id="deviation-chart-priority" class="deviation-chart deviation-horizontal"></div>
+                  <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color legend-plan"></span><span data-i18n="plannedPomodoros">План</span></span>
+                    <span class="legend-item"><span class="legend-color legend-fact"></span><span data-i18n="spentPomodoros">Факт</span></span>
+                  </div>
+                </div>
+                <div class="analytics-right-bottom">
+                  <div class="panel">
+                    <h3>План/факт по проектам</h3>
+                    <div id="deviation-chart-project" class="deviation-chart deviation-vertical"></div>
+                  </div>
+                  <div class="panel">
+                    <h3>План/факт по категориям</h3>
+                    <div id="deviation-chart-category" class="deviation-chart deviation-vertical"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-settings">
+        <div class="settings-layout">
+          <div class="panel">
+            <h2 data-i18n="pomodoroSettings">Настройки помодоро</h2>
+            <div class="three-col">
+              <label class="inline-label">
+                <span data-i18n="workMinutes">Работа (мин)</span>
+                <input type="number" id="settings-work-minutes" min="1" />
+              </label>
+              <label class="inline-label">
+                <span data-i18n="shortBreak">Короткий перерыв</span>
+                <input type="number" id="settings-short-break" min="1" />
+              </label>
+              <label class="inline-label">
+                <span data-i18n="longBreak">Длинный перерыв</span>
+                <input type="number" id="settings-long-break" min="1" />
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 data-i18n="workdaySettings">Рабочий день</h2>
+            <div class="three-col">
+              <label class="inline-label">
+                <span data-i18n="workdayStart">Начало рабочего дня</span>
+                <input type="time" id="settings-workday-start" />
+              </label>
+              <label class="inline-label">
+                <span data-i18n="workdayEnd">Окончание рабочего дня</span>
+                <input type="time" id="settings-workday-end" />
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 data-i18n="uiSettings">Интерфейс</h2>
+            <div class="settings-ui-fields">
+              <label class="inline-label">
+                <span data-i18n="theme">Тема</span>
+                <select id="settings-theme">
+                  <option value="system" data-i18n="systemTheme">Системная</option>
+                  <option value="light" data-i18n="lightTheme">Светлая</option>
+                  <option value="dark" data-i18n="darkTheme">Темная</option>
+                </select>
+              </label>
+              <label class="inline-label">
+                <span data-i18n="language">Язык</span>
+                <select id="settings-language">
+                  <option value="ru">Русский</option>
+                  <option value="en">English</option>
+                  <option value="it">Italiano</option>
+                  <option value="de">Deutsch</option>
+                  <option value="fr">Français</option>
+                  <option value="be">Беларуская</option>
+                  <option value="sr">Српски</option>
+                  <option value="ka">ქართული</option>
+                </select>
+              </label>
+              <label class="inline-label">
+                <span data-i18n="kanbanProcessView">Панель Канбан (Процесс)</span>
+                <select id="settings-kanban-process-view">
+                  <option value="today" data-i18n="kanbanProcessViewToday">Колонка Сегодня</option>
+                  <option value="process" data-i18n="kanbanProcessViewProcess">Колонка Процесс</option>
+                </select>
+              </label>
+              <label class="checkbox-label settings-ticking-row">
+                <input type="checkbox" id="settings-ticking-enabled" />
+                <span data-i18n="timerTicking">Тиканье таймера</span>
+              </label>
+              <label class="checkbox-label settings-ticking-row">
+                <input type="checkbox" id="settings-markdown-extended-enabled" />
+                <span data-i18n="markdownExtended">Расширенный Markdown</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>База данных</h2>
+            <div class="settings-db-fields">
+              <label class="inline-label">
+                <span>Профили БД</span>
+                <select id="settings-db-profile"></select>
+              </label>
+              <div class="actions-row settings-db-actions">
+                <button id="settings-db-create-btn" type="button" data-i18n="createEmptyDb">Создать новую БД</button>
+                <button id="settings-db-pick-btn" type="button" class="btn-muted">Выбрать путь БД</button>
+                <button id="settings-db-activate-btn" type="button">Сделать активной</button>
+              </div>
+              <div id="settings-db-current" class="settings-db-current"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="actions-row">
+              <button id="save-settings-btn" data-i18n="saveSettings">Сохранить настройки</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-backlog">
+        <div class="backlog-layout">
+          <aside class="backlog-sidebar">
+            <div class="panel">
+              <h2 data-i18n="filters">Фильтры</h2>
+              <div class="filters-grid backlog-filters">
+                <input id="backlog-filter-description" data-i18n-placeholder="filterDescription" placeholder="Фрагмент описания" />
+                <select id="backlog-filter-project"></select>
+                <div class="chips-field">
+                  <div class="chips-field-title" data-i18n="category">Категория</div>
+                  <div id="backlog-filter-category-chips" class="chips-list"></div>
+                </div>
+                <select id="backlog-filter-priority">
+                  <option value="" data-i18n="anyPriority">Любой приоритет</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+                <input type="date" id="backlog-filter-start-date" />
+                <input id="backlog-filter-attr-key" data-i18n-placeholder="attrKey" placeholder="Ключ атрибута" />
+                <input id="backlog-filter-attr-value" data-i18n-placeholder="attrValue" placeholder="Значение атрибута" />
+              </div>
+              <div class="actions-row">
+                <button id="backlog-apply-btn" data-i18n="apply">Применить</button>
+                <button id="backlog-reset-btn" class="btn-muted" data-i18n="reset">Сбросить</button>
+              </div>
+            </div>
+          </aside>
+          <section class="backlog-main panel">
+            <h2 data-i18n="tabBacklog">Бэклог</h2>
+            <div class="archive-table-wrap">
+              <table class="archive-table">
+                <thead id="backlog-table-head">
+                  <tr>
+                    <th data-sort-key="id">ID</th>
+                    <th data-sort-key="subject" data-i18n="subject">Тема</th>
+                    <th data-sort-key="project_name" data-i18n="project">Проект</th>
+                    <th data-sort-key="category_name" data-i18n="category">Категория</th>
+                    <th data-sort-key="priority" data-i18n="anyPriority">Приоритет</th>
+                    <th data-sort-key="scheduled_at" data-i18n="scheduledAt">План: дата и время старта</th>
+                    <th data-sort-key="planned_pomodoros" data-i18n="plannedPomodoros">План</th>
+                    <th data-sort-key="spent_pomodoros" data-i18n="spentPomodoros">Факт</th>
+                  </tr>
+                </thead>
+                <tbody id="backlog-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-archive">
+        <div class="archive-layout">
+          <aside class="archive-sidebar">
+            <div class="panel">
+              <h2 data-i18n="filters">Фильтры</h2>
+              <div class="filters-grid archive-filters">
+                <input id="archive-filter-description" data-i18n-placeholder="filterDescription" placeholder="Фрагмент описания" />
+                <select id="archive-filter-project"></select>
+                <div class="chips-field">
+                  <div class="chips-field-title" data-i18n="category">Категория</div>
+                  <div id="archive-filter-category-chips" class="chips-list"></div>
+                </div>
+                <select id="archive-filter-priority">
+                  <option value="" data-i18n="anyPriority">Любой приоритет</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+                <input type="date" id="archive-filter-completed-from" />
+              </div>
+              <div class="actions-row">
+                <button id="archive-apply-btn" data-i18n="apply">Применить</button>
+                <button id="archive-reset-btn" class="btn-muted" data-i18n="reset">Сбросить</button>
+              </div>
+            </div>
+          </aside>
+          <section class="archive-main panel">
+            <h2 data-i18n="tabArchive">Архив</h2>
+            <div class="archive-table-wrap">
+              <table class="archive-table">
+                <thead id="archive-table-head">
+                  <tr>
+                    <th data-sort-key="task_id">ID</th>
+                    <th data-sort-key="subject" data-i18n="subject">Тема</th>
+                    <th data-sort-key="project_name" data-i18n="project">Проект</th>
+                    <th data-sort-key="category_name" data-i18n="category">Категория</th>
+                    <th data-sort-key="priority" data-i18n="anyPriority">Приоритет</th>
+                    <th data-sort-key="scheduled_at" data-i18n="scheduledAt">План: дата и время старта</th>
+                    <th data-sort-key="planned_pomodoros" data-i18n="plannedPomodoros">План</th>
+                    <th data-sort-key="spent_pomodoros" data-i18n="spentPomodoros">Факт</th>
+                    <th data-sort-key="completed_at" data-i18n="completed">Завершена</th>
+                  </tr>
+                </thead>
+                <tbody id="archive-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="dialog-backdrop hidden" id="session-dialog">
+      <div class="dialog">
+        <h3 data-i18n="sessionFinished">Помидор завершен</h3>
+        <p id="session-dialog-text"></p>
+        <p id="session-dialog-countdown"></p>
+        <div class="actions-row">
+          <button id="session-break-btn" data-i18n="startBreak">Перерыв</button>
+          <button id="session-next-btn" class="btn-muted" data-i18n="nextPomodoro">Следующий помидор</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-backdrop hidden" id="task-editor-modal">
+      <div class="dialog">
+        <div class="modal-head">
+          <h3 data-i18n="taskEditor">Редактор задачи</h3>
+          <button id="close-task-editor-modal-btn" class="btn-muted">×</button>
+        </div>
+        <p id="task-editor-hint" class="editor-hint"></p>
+        <form id="task-form" class="task-form">
+          <input type="hidden" id="task-id" />
+          <input id="task-subject" data-i18n-placeholder="subject" placeholder="Тема" />
+          <textarea id="task-description" rows="3" required data-i18n-placeholder="taskDescription" placeholder="Описание (Markdown)"></textarea>
+          <textarea id="task-result" rows="4" data-i18n-placeholder="result" placeholder="Результат"></textarea>
+          <div class="task-main-row">
+            <label class="inline-label">
+              <span data-i18n="anyPriority">Приоритет</span>
+              <select id="task-priority">
+                <option value="" data-i18n="noPriority">Без приоритета</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </label>
+            <label class="inline-label">
+              <span data-i18n="project">Проект</span>
+              <input id="task-project" list="projects-list" data-i18n-placeholder="project" placeholder="Проект" />
+            </label>
+            <label class="inline-label">
+              <span data-i18n="archiveDateStart">Старт</span>
+              <input type="date" id="task-start-date" />
+            </label>
+            <label class="inline-label">
+              <span data-i18n="archiveDateEnd">Дедлайн</span>
+              <input type="date" id="task-end-date" />
+            </label>
+            <label class="inline-label">
+              <span data-i18n="scheduledAt">План: дата и время старта</span>
+              <input type="datetime-local" id="task-scheduled-at" />
+            </label>
+          </div>
+          <div class="chips-field">
+            <div class="chips-field-title" data-i18n="category">Категория</div>
+            <div id="task-category-chips" class="chips-list"></div>
+          </div>
+          <datalist id="projects-list"></datalist>
+          <div class="task-metrics-layout">
+            <div class="task-metrics-left">
+              <div class="two-col">
+                <label class="inline-label">
+                  <span data-i18n="plannedPomodoros">План помидоров</span>
+                  <input type="number" min="0" id="task-planned" value="1" />
+                </label>
+                <label class="inline-label">
+                  <span data-i18n="spentPomodoros">Факт помидоров</span>
+                  <input type="number" min="0" id="task-spent" value="0" />
+                </label>
+              </div>
+              <textarea id="task-attributes" rows="3" data-i18n-placeholder="attributesPlaceholder" placeholder="key:value (каждая пара с новой строки)"></textarea>
+            </div>
+            <label class="inline-label task-color-panel">
+              <span data-i18n="cardColor">Цвет карточки</span>
+              <input type="hidden" id="task-color" value="#7dd3fc" />
+              <div class="task-color-widget">
+                <div id="task-color-palette" class="task-color-palette"></div>
+                <div class="task-color-selected">
+                  <span class="task-color-preview" id="task-color-preview"></span>
+                  <span id="task-color-value">#7dd3fc</span>
+                </div>
+              </div>
+            </label>
+          </div>
+          <div class="task-project-category-row">
+            <input id="new-project-name" data-i18n-placeholder="newProject" placeholder="Новый проект" />
+            <button id="add-project-btn" type="button" data-i18n="addProject">Добавить проект</button>
+            <input id="new-category-name" data-i18n-placeholder="newCategory" placeholder="Новая категория" />
+            <button id="add-category-btn" type="button" data-i18n="addCategory">Добавить категорию</button>
+          </div>
+          <div class="actions-row">
+            <button type="submit" id="task-save-btn" data-i18n="saveTask">Сохранить задачу</button>
+            <button type="button" id="task-new-btn" class="btn-muted" data-i18n="newTask">Новая задача</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <div id="task-context-menu" class="context-menu hidden">
+      <button type="button" id="context-start-stop-btn"></button>
+      <button type="button" id="context-wait-btn"></button>
+      <button type="button" id="context-done-btn"></button>
+      <button type="button" id="context-clone-btn"></button>
+      <button type="button" id="context-edit-btn"></button>
+      <button type="button" id="context-backlog-btn"></button>
+      <button type="button" id="context-delete-btn" class="danger"></button>
+    </div>
+
+    <div id="backlog-task-menu" class="context-menu hidden">
+      <div id="backlog-menu-move-list"></div>
+      <button type="button" id="backlog-menu-edit-btn"></button>
+      <button type="button" id="backlog-menu-delete-btn" class="danger"></button>
+    </div>
+
+    <div id="backlog-move-menu" class="context-menu hidden"></div>
+    <div id="archive-task-menu" class="context-menu hidden">
+      <button type="button" id="archive-menu-view-btn"></button>
+      <button type="button" id="archive-menu-create-btn"></button>
+      <button type="button" id="archive-menu-delete-btn" class="danger"></button>
+    </div>
+
+    <div class="dialog-backdrop hidden" id="archive-task-view-modal">
+      <div class="dialog">
+        <div class="modal-head">
+          <h3 data-i18n="archiveTaskView">Просмотр задачи</h3>
+          <button id="close-archive-task-view-modal-btn" class="btn-muted">×</button>
+        </div>
+        <div class="archive-task-view-grid">
+          <div class="archive-task-view-row">
+            <strong>ID:</strong>
+            <span id="archive-view-id"></span>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="subject">Тема</strong>
+            <span id="archive-view-subject"></span>
+          </div>
+          <div class="archive-task-view-row archive-task-view-row-block">
+            <strong data-i18n="taskDescription">Описание (Markdown)</strong>
+            <div id="archive-view-description" class="archive-task-view-markdown task-description"></div>
+          </div>
+          <div class="archive-task-view-row archive-task-view-row-block">
+            <strong data-i18n="result">Результат</strong>
+            <div id="archive-view-result" class="archive-task-view-markdown task-description"></div>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="project">Проект</strong>
+            <span id="archive-view-project"></span>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="category">Категории</strong>
+            <span id="archive-view-categories"></span>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="plannedPomodoros">План помидоров</strong>
+            <span id="archive-view-planned"></span>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="spentPomodoros">Факт помидоров</strong>
+            <span id="archive-view-spent"></span>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="pomodorosCount">Количество помидоров</strong>
+            <span id="archive-view-pomodoros-count"></span>
+          </div>
+          <div class="archive-task-view-row">
+            <strong data-i18n="dates">Даты</strong>
+            <span id="archive-view-dates"></span>
+          </div>
+          <div class="archive-task-view-row archive-task-view-row-block">
+            <strong>Key-Value</strong>
+            <div id="archive-view-attributes" class="archive-task-view-attributes"></div>
+          </div>
+        </div>
+        <div class="actions-row">
+          <button type="button" id="archive-view-clone-btn" data-i18n="cloneToInboxRu">Клонировать в Входящие</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

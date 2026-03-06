@@ -4354,9 +4354,7 @@ async function init() {
     await loadDbProfiles();
     await refreshBoard();
     await recoverInterruptedPomodoroAfterCrash();
-    if (state.timer.running || hasActivePomodoroTask()) {
-      setActiveTab("pomodoro");
-    }
+    setActiveTab("kanban");
     await loadAnalytics();
     await loadCalendar();
     await autoStartScheduledTaskIfDue();

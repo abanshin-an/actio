@@ -123,11 +123,24 @@ function getDbProfilesFilePath() {
 }
 
 function getDefaultDatabasePath() {
-  const targetPath = path.join(app.getPath("appData"), "actio", "actio.sqlite");
+  const targetPath = path.join(app.getPath("appData"), "actio", "actio-demo.sqlite");
+  const bundledDemoCandidates = [
+    path.join(process.cwd(), "demo-data", "actio-demo.sqlite"),
+    path.join(app.getAppPath(), "demo-data", "actio-demo.sqlite")
+  ];
   const legacyPath = path.join(app.getPath("userData"), "kanban-pomodoro.sqlite");
 
   if (targetPath === legacyPath) {
     return targetPath;
+  }
+
+  if (!fs.existsSync(targetPath)) {
+    for (const sourcePath of bundledDemoCandidates) {
+      if (!fs.existsSync(sourcePath)) continue;
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.copyFileSync(sourcePath, targetPath);
+      break;
+    }
   }
 
   if (!fs.existsSync(targetPath) && fs.existsSync(legacyPath)) {

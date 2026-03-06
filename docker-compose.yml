@@ -1,0 +1,25 @@
+services:
+  actio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: actio:local
+    container_name: actio
+    user: "0:0"
+    environment:
+      ELECTRON_DISABLE_SANDBOX: "1"
+      DISPLAY_NUM: ":1"
+      SCREEN_SIZE: "1366x768x24"
+      VNC_PORT: "5900"
+      NOVNC_PORT: "6080"
+    command: /app/scripts/start-novnc.sh
+    ports:
+      - "6080:6080"
+    volumes:
+      - actio-config:/home/node/.config/actio
+    stdin_open: true
+    tty: true
+    restart: "no"
+
+volumes:
+  actio-config:

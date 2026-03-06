@@ -15,6 +15,22 @@ npm install
 npm run start
 ```
 
+## Запуск в Docker
+
+Проект можно запускать через:
+
+```bash
+docker compose up --build
+```
+
+После старта откройте в браузере:
+
+- `http://localhost:6080` (noVNC)
+- если не открылось по корню: `http://localhost:6080/vnc.html`
+
+В контейнере поднимается виртуальный X-сервер (`Xvfb`) и `noVNC`, поэтому установка
+`XQuartz`/`xhost` на macOS не требуется.
+
 ## Реализовано
 
 - 4 вкладки: `Канбан`, `Помодоро`, `Анализ`, `Настройки`
@@ -73,11 +89,40 @@ npm run dist:mac
 npm run dist:win
 npm run dist:linux
 
+# По архитектурам
+npm run dist:mac:x64
+npm run dist:mac:arm64
+npm run dist:win:x64
+npm run dist:win:arm64
+npm run dist:linux:x64
+npm run dist:linux:arm64
+
+# Собрать обе архитектуры для конкретной платформы
+npm run dist:mac:all
+npm run dist:win:all
+npm run dist:linux:all
+
 # Альтернатива для macOS (если DMG недоступен в окружении)
 npm run dist:mac:zip
 ```
 
 Артефакты сборки складываются в папку `release/`.
+
+## Авто-релиз по тегу
+
+Настроен workflow `Build And Release`:
+
+1. Создайте и отправьте тег версии:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+2. GitHub Actions автоматически:
+- соберет native-артефакты для macOS/Windows/Linux (x64 + arm64),
+- создаст GitHub Release по тегу,
+- прикрепит к релизу установщики (`.dmg`, `.exe`, `.AppImage`, `.deb`).
 
 ## Хранение данных
 

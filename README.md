@@ -18,7 +18,7 @@ flowchart LR
   Start --> Native[Запуск нативного образа]
   Native --> Run[выполнить scripts/make-native.sh]
   Run --> RunOs[найти в папке release подходящий артефакт и запустить]
-  Start --> Dev[для разработки: \n npm i \n npm run dev]
+  Start --> Dev[для разработки: npm i && npm run dev]
   Start --> Docker
   Docker --> MacOs
   Docker --> Linux
@@ -28,8 +28,8 @@ flowchart LR
   MacOs --> noVnc
   Linux --> XQuartz
   Linux --> noVnc 
-  noVnc --> script1[выполнить scripts/start-novnc.sh\n выглядит плохо]
-  XQuartz --> script2[требует педварительной установки XQuartz,\n затем выполнить скрипт scripts/start-xquartz.sh] 
+  noVnc --> script1[выполнить scripts/start-novnc.sh выглядит плохо]
+  XQuartz --> script2[требует педварительной установки XQuartz, затем выполнить скрипт scripts/start-xquartz.sh] 
 ```
 
 если в режиме разработки будут проблемы со сборкой - выполнить:

@@ -20,9 +20,11 @@ erDiagram
     TASKS {
         int id PK
         string subject
+        string result
         string description_md
         string color
         string priority
+        datetime scheduled_at
         date start_date
         date end_date
         int planned_pomodoros
@@ -85,9 +87,11 @@ erDiagram
         int id PK
         int task_id
         string subject
+        string result
         string description_md
         string color
         string priority
+        datetime scheduled_at
         date start_date
         date end_date
         int planned_pomodoros
@@ -117,3 +121,4 @@ erDiagram
     TASKS ||--o{ POMODORO_SESSIONS : "task_id"
     TASKS ||--o{ SPENT_EVENTS : "task_id"
     TASKS ||--|| BACKLOG_TASKS : "task_id"
+    TASKS ||--o| ARCHIVE_TASKS : "task_id"

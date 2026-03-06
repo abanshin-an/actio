@@ -68,7 +68,7 @@
 
 ## 5) Модель данных (SQLite)
 База инициализируется в `src/main/db.js`.
-![db-schema.svg](db-schema.svg)
+![db-schema.png](db-schema.png)
 
 Ключевые таблицы:
 - `columns`
@@ -90,6 +90,7 @@
 - Есть миграция legacy-имен колонок (`Plan`/`Project` -> `Organise`).
 
 ## 6) Хранение и миграция БД
+
 - Целевой путь БД:
   - `<appData>/actio/actio.sqlite`
 - Поддерживается override через env:

@@ -1,6 +1,7 @@
 # actio
 
 Desktop-приложение на `Electron + SQLite` для управления задачами по канбану, отслеживания работы по технике Pomodoro и анализа производительности.
+Для чтения этих файлов желательно установить плагин mermaid
 
 ## Стек
 
@@ -8,20 +9,39 @@ Desktop-приложение на `Electron + SQLite` для управлени�
 - `Vanilla JS (ES modules)` (интерфейс)
 - `better-sqlite3` (локальная БД SQLite)
 
-## Запуск
-
-```bash
-npm install
-npm run start
-```
-
-## Запуск в Docker
+## Запуск в разных средах
 
 Проект можно запускать через:
 
-```bash
-docker compose up --build
+```mermaid
+flowchart LR
+  Start --> Native[Запуск нативного образа]
+  Native --> Run[выполнить scripts/make-native.sh]
+  Run --> RunOs[найти в папке release подходящий артефакт и запустить]
+  Start --> Dev[для разработки:\nnpm i\nnpm run dev]
+  Start --> Docker
+  Docker --> MacOs
+  Docker --> Linux
+  Docker --> Windows
+  Windows --> RunWindows[выполнить scripts/start-windows.cmd\n - не проверял ]
+  MacOs --> XQuartz
+  MacOs --> noVnc
+  Linux --> XQuartz
+  Linux --> noVnc 
+  noVnc --> script1[выполнить scripts/start-novnc.sh\n выглядит плохо]
+  XQuartz --> script2[требует педварительной установки XQuartz,\n затем выполнить скрипт scripts/start-xquartz.sh] 
 ```
+
+если в режиме разработки будут проблемы со сборкой полекьа выполнить:
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npx electron-rebuild -f -w better-sqlite3
+npm run dev
+```
+
+При первом запуске в Docker приложение автоматически создаёт профиль БД и подключает
+демо-базу `actio-demo.sqlite` из `demo-data`.
 
 После старта откройте в браузере:
 
@@ -30,6 +50,23 @@ docker compose up --build
 
 В контейнере поднимается виртуальный X-сервер (`Xvfb`) и `noVNC`, поэтому установка
 `XQuartz`/`xhost` на macOS не требуется.
+
+### Вариант с XQuartz (без noVNC)
+Если нужен вывод окна Electron напрямую в XQuartz
+
+1. Для работы на macOs cначала нужно установить XQuartz:
+```bash
+brew install xquartz
+sudo installer -pkg /opt/homebrew/Caskroom/xquartz/2.8.5/XQuartz-2.8.5.pkg -target /
+```
+
+2.
+```bash
+open -a XQuartz
+DISPLAY=:0 /opt/X11/bin/xhost +localhost
+/opt/X11/bin/xhost + 127.0.0.1
+docker compose -f docker-compose.posix.yml up --build
+```
 
 ## Реализовано
 

@@ -41,11 +41,13 @@ RUN npm ci
 
 COPY . .
 
+RUN test -f /app/demo-data/actio-demo.sqlite
+
 # Electron sandbox helper must be owned by root and be setuid (4755).
 RUN chown root:root /app/node_modules/electron/dist/chrome-sandbox \
   && chmod 4755 /app/node_modules/electron/dist/chrome-sandbox
 
-RUN chmod +x /app/scripts/start-novnc.sh
+RUN chmod +x /app/scripts/start-novnc.sh /app/scripts/start-xquartz.sh
 
 USER node
 

@@ -1,0 +1,22 @@
+services:
+  actio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: actio:xquartz
+    container_name: actio-xquartz
+    user: "0:0"
+    environment:
+      DISPLAY: host.docker.internal:0
+      ELECTRON_OZONE_PLATFORM_HINT: x11
+      QT_X11_NO_MITSHM: "1"
+      ELECTRON_DISABLE_SANDBOX: "1"
+    command: /app/scripts/start-xquartz.sh
+    volumes:
+      - actio-config-xquartz:/root/.config/actio
+    stdin_open: true
+    tty: true
+    restart: "no"
+
+volumes:
+  actio-config-xquartz:

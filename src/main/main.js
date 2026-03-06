@@ -122,6 +122,22 @@ function getDbProfilesFilePath() {
   return path.join(app.getPath("appData"), "actio", "db-profiles.json");
 }
 
+function copySqliteBundleIfMissing(sourcePath, targetPath) {
+  if (!fs.existsSync(sourcePath) || fs.existsSync(targetPath)) return false;
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  fs.copyFileSync(sourcePath, targetPath);
+
+  for (const suffix of ["-wal", "-shm"]) {
+    const sourceExtra = `${sourcePath}${suffix}`;
+    const targetExtra = `${targetPath}${suffix}`;
+    if (fs.existsSync(sourceExtra) && !fs.existsSync(targetExtra)) {
+      fs.copyFileSync(sourceExtra, targetExtra);
+    }
+  }
+
+  return true;
+}
+
 function getDefaultDatabasePath() {
   const targetPath = path.join(app.getPath("appData"), "actio", "actio-demo.sqlite");
   const bundledDemoCandidates = [
@@ -136,24 +152,12 @@ function getDefaultDatabasePath() {
 
   if (!fs.existsSync(targetPath)) {
     for (const sourcePath of bundledDemoCandidates) {
-      if (!fs.existsSync(sourcePath)) continue;
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.copyFileSync(sourcePath, targetPath);
-      break;
+      if (copySqliteBundleIfMissing(sourcePath, targetPath)) break;
     }
   }
 
   if (!fs.existsSync(targetPath) && fs.existsSync(legacyPath)) {
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.copyFileSync(legacyPath, targetPath);
-
-    for (const suffix of ["-wal", "-shm"]) {
-      const legacyExtra = `${legacyPath}${suffix}`;
-      const targetExtra = `${targetPath}${suffix}`;
-      if (fs.existsSync(legacyExtra) && !fs.existsSync(targetExtra)) {
-        fs.copyFileSync(legacyExtra, targetExtra);
-      }
-    }
+    copySqliteBundleIfMissing(legacyPath, targetPath);
   }
 
   return targetPath;

@@ -16,7 +16,7 @@ services:
     ports:
       - "6080:6080"
     volumes:
-      - actio-config:/home/node/.config/actio
+      - actio-config:/root/.config/actio
     stdin_open: true
     tty: true
     restart: "no"

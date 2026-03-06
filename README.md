@@ -18,7 +18,7 @@ flowchart LR
   Start --> Native[Запуск нативного образа]
   Native --> Run[выполнить scripts/make-native.sh]
   Run --> RunOs[найти в папке release подходящий артефакт и запустить]
-  Start --> Dev[для разработки:\nnpm i\nnpm run dev]
+  Start --> Dev[для разработки: \n npm i \n npm run dev]
   Start --> Docker
   Docker --> MacOs
   Docker --> Linux

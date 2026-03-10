@@ -23,6 +23,17 @@ let timerRuntimeState = {
   plannedDurationSec: 0
 };
 let currentDbPath = null;
+let syncState = {
+  revision: 1,
+  updatedAt: new Date().toISOString()
+};
+
+function bumpSyncRevision() {
+  syncState = {
+    revision: Math.max(1, Number(syncState.revision || 1) + 1),
+    updatedAt: new Date().toISOString()
+  };
+}
 
 function persistTimerRuntimeState() {
   if (!db) return;
@@ -388,55 +399,62 @@ function handle(channel, callback) {
 }
 
 function registerIpcHandlers() {
+  const handleMutating = (channel, callback) => handle(channel, async (payload) => {
+    const data = await callback(payload || {});
+    bumpSyncRevision();
+    return data;
+  });
+
   handle("board:load", (filters) => db.loadBoard(filters || {}));
 
-  handle("columns:create", ({ title }) => db.createColumn(title));
-  handle("columns:delete", ({ columnId }) => db.deleteColumn(columnId));
-  handle("columns:reorder", ({ orderedIds }) => db.reorderColumns(orderedIds));
+  handleMutating("columns:create", ({ title }) => db.createColumn(title));
+  handleMutating("columns:delete", ({ columnId }) => db.deleteColumn(columnId));
+  handleMutating("columns:reorder", ({ orderedIds }) => db.reorderColumns(orderedIds));
 
   handle("projects:list", () => db.listProjects());
-  handle("projects:create", ({ name }) => db.createProject(name));
+  handleMutating("projects:create", ({ name }) => db.createProject(name));
 
   handle("categories:list", () => db.listCategories());
-  handle("categories:create", ({ name }) => db.createCategory(name));
+  handleMutating("categories:create", ({ name }) => db.createCategory(name));
 
-  handle("tasks:create", (payload) => db.createTask(payload));
-  handle("tasks:update", ({ taskId, patch }) => db.updateTask(taskId, patch));
-  handle("tasks:delete", ({ taskId }) => db.deleteTask(taskId));
-  handle("tasks:move", ({ taskId, toColumnId }) => db.moveTask(taskId, toColumnId));
-  handle("tasks:reorder", ({ columnId, orderedTaskIds }) =>
+  handleMutating("tasks:create", (payload) => db.createTask(payload));
+  handleMutating("tasks:update", ({ taskId, patch }) => db.updateTask(taskId, patch));
+  handleMutating("tasks:delete", ({ taskId }) => db.deleteTask(taskId));
+  handleMutating("tasks:move", ({ taskId, toColumnId }) => db.moveTask(taskId, toColumnId));
+  handleMutating("tasks:reorder", ({ columnId, orderedTaskIds }) =>
     db.reorderTasksInColumn(columnId, orderedTaskIds)
   );
   handle("tasks:get", ({ taskId }) => db.getTaskById(taskId));
-  handle("tasks:set-active", ({ taskId }) => db.setActiveTask(taskId));
-  handle("tasks:clear-active", ({ taskId }) => db.clearActiveTask(taskId));
-  handle("tasks:complete", ({ taskId }) => db.completeTask(taskId));
-  handle("tasks:interrupt", ({ taskId }) => db.interruptTask(taskId));
-  handle("tasks:increment-spent", ({ taskId, amount, source }) =>
+  handleMutating("tasks:set-active", ({ taskId }) => db.setActiveTask(taskId));
+  handleMutating("tasks:clear-active", ({ taskId }) => db.clearActiveTask(taskId));
+  handleMutating("tasks:complete", ({ taskId }) => db.completeTask(taskId));
+  handleMutating("tasks:interrupt", ({ taskId }) => db.interruptTask(taskId));
+  handleMutating("tasks:increment-spent", ({ taskId, amount, source }) =>
     db.incrementTaskSpent(taskId, amount, source || "manual")
   );
-  handle("backlog:add", ({ taskId }) => db.addTaskToBacklog(taskId));
+  handleMutating("backlog:add", ({ taskId }) => db.addTaskToBacklog(taskId));
   handle("backlog:list", ({ filters }) => db.listBacklog(filters || {}));
-  handle("backlog:move", ({ taskId, toColumnId }) => db.moveTaskFromBacklog(taskId, toColumnId));
+  handleMutating("backlog:move", ({ taskId, toColumnId }) => db.moveTaskFromBacklog(taskId, toColumnId));
 
-  handle("todotxt:add", ({ line }) => db.quickAddTodoTxt(line));
+  handleMutating("todotxt:add", ({ line }) => db.quickAddTodoTxt(line));
 
-  handle("pomodoro:record", (payload) => db.recordPomodoroSession(payload));
+  handleMutating("pomodoro:record", (payload) => db.recordPomodoroSession(payload));
   handle("calendar:sessions", ({ from, to }) => db.listCalendarSessions({ from, to }));
   handle("calendar:scheduled", ({ from, to }) => db.listScheduledCalendarEvents({ from, to }));
 
   handle("settings:get", () => db.getSettings());
-  handle("settings:update", ({ patch }) => db.updateSettings(patch));
+  handleMutating("settings:update", ({ patch }) => db.updateSettings(patch));
+  handle("sync:get-state", () => ({ ...syncState }));
   handle("db:profiles:list", () => listDbProfiles());
   handle("db:profiles:choose-path", () => chooseDatabasePath());
-  handle("db:profiles:add", ({ dbPath }) => addDbProfile(dbPath));
-  handle("db:profiles:create-empty", ({ dbPath }) => createEmptyDbProfile(dbPath));
-  handle("db:profiles:select", ({ dbPath }) => switchDatabase(dbPath));
+  handleMutating("db:profiles:add", ({ dbPath }) => addDbProfile(dbPath));
+  handleMutating("db:profiles:create-empty", ({ dbPath }) => createEmptyDbProfile(dbPath));
+  handleMutating("db:profiles:select", ({ dbPath }) => switchDatabase(dbPath));
 
   handle("analytics:get", ({ filters }) => db.getAnalytics(filters || {}));
   handle("archive:list", ({ filters }) => db.listArchive(filters || {}));
-  handle("archive:clone-to-inbox", ({ archiveId }) => db.cloneArchiveTaskToInbox(archiveId));
-  handle("archive:delete", ({ archiveId }) => db.deleteArchiveTask(archiveId));
+  handleMutating("archive:clone-to-inbox", ({ archiveId }) => db.cloneArchiveTaskToInbox(archiveId));
+  handleMutating("archive:delete", ({ archiveId }) => db.deleteArchiveTask(archiveId));
   handle("shell:open-external", ({ url }) => shell.openExternal(String(url || "")));
   handle("app:startup-state", () => startupState);
 

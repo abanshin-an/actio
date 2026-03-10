@@ -13,6 +13,24 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function normalizeIsoDateTime(value) {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const dateOnly = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]) - 1;
+    const day = Number(dateOnly[3]);
+    const localDate = new Date(year, month, day, 0, 0, 0, 0);
+    if (!Number.isFinite(localDate.getTime())) return null;
+    return localDate.toISOString();
+  }
+  const parsedMs = new Date(raw).getTime();
+  if (!Number.isFinite(parsedMs)) return null;
+  return new Date(parsedMs).toISOString();
+}
+
 function toInt(value, fallback = 0) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -219,7 +237,9 @@ export class AppDatabase {
       theme: "light",
       language: "ru",
       timerTickingEnabled: "0",
-      markdownExtendedEnabled: "1"
+      markdownExtendedEnabled: "1",
+      clientAutoRefreshEnabled: "1",
+      clientAutoRefreshIntervalSec: "3"
     };
 
     const upsertSetting = this.db.prepare(
@@ -663,8 +683,8 @@ export class AppDatabase {
         payload?.color || "#7dd3fc",
         payload?.priority || null,
         payload?.ignoreScheduleOverlap ? (payload?.scheduledAt || null) : this.resolveScheduledAt(payload?.scheduledAt || null),
-        payload?.startDate || null,
-        payload?.endDate || null,
+        normalizeIsoDateTime(payload?.startDate),
+        normalizeIsoDateTime(payload?.endDate),
         plannedPomodoros,
         toInt(payload?.spentPomodoros, 0),
         payload?.isCompleted ? 1 : 0,
@@ -713,8 +733,8 @@ export class AppDatabase {
         : this.resolveScheduledAt(patch.scheduledAt || null, id);
       append("scheduled_at", scheduledAt);
     }
-    if (patch.startDate !== undefined) append("start_date", patch.startDate || null);
-    if (patch.endDate !== undefined) append("end_date", patch.endDate || null);
+    if (patch.startDate !== undefined) append("start_date", normalizeIsoDateTime(patch.startDate));
+    if (patch.endDate !== undefined) append("end_date", normalizeIsoDateTime(patch.endDate));
     if (patch.plannedPomodoros !== undefined)
       append("planned_pomodoros", toInt(patch.plannedPomodoros, 0));
     if (patch.spentPomodoros !== undefined)

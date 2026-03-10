@@ -71,6 +71,13 @@
               <input id="todotxt-input" placeholder="(A) Подготовить отчет +Work @office due:2026-02-20" />
               <button id="todotxt-add-btn" data-i18n="add">Добавить</button>
             </div>
+            <div class="actions-row">
+              <button id="sync-refresh-btn" type="button" class="btn-muted" data-i18n="refreshNow">Обновить сейчас</button>
+              <label class="checkbox-label">
+                <input type="checkbox" id="sync-auto-refresh-enabled" />
+                <span data-i18n="autoRefreshClients">Автообновление клиентов</span>
+              </label>
+            </div>
           </div>
           <div id="kanban-board" class="kanban-board"></div>
         </section>
@@ -431,11 +438,11 @@
             </label>
             <label class="inline-label">
               <span data-i18n="archiveDateStart">Старт</span>
-              <input type="date" id="task-start-date" />
+              <input type="datetime-local" id="task-start-date" />
             </label>
             <label class="inline-label">
               <span data-i18n="archiveDateEnd">Дедлайн</span>
-              <input type="date" id="task-end-date" />
+              <input type="datetime-local" id="task-end-date" />
             </label>
             <label class="inline-label">
               <span data-i18n="scheduledAt">План: дата и время старта</span>
@@ -571,6 +578,7 @@
 
     <div id="toast" class="toast hidden"></div>
 
+    <script src="./web-api.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

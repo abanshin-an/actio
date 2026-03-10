@@ -9,16 +9,42 @@ Desktop-приложение на `Eletron + SQLite` для управления
 - `Vanilla JS (ES modules)` (интерфейс)
 - `better-sqlite3` (локальная БД SQLite)
 
+## Единый backend + 2 клиента
+
+Запуск backend (SQLite + бизнес-логика):
+
+```bash
+npm run backend
+```
+
+Web-клиент:
+- открыть `http://localhost:3010`
+
+Desktop-клиент (Electron, работает как клиент backend):
+
+```bash
+npm run desktop:client
+```
+
+Оба клиента используют одну и ту же БД backend-процесса.
+
 ## Запуск в разных средах
 
-Проект можно запускать через:
+Разбил приложение на клиентскую (web и desktop-версии и backend)
+Теперь самый простой способ запустить приложение
+```shell
+docker compose -f docker-compose.web.yml up --build
+```
+И открыть ссылку [http://localhost:3010](http://localhost:3010)
+
+Также проект можно запускать через:
 
 ```mermaid
 flowchart LR
   Start --> Native[Запуск нативного образа]
   Native --> Run[выполнить scripts/make-native.sh]
   Run --> RunOs[найти в папке release подходящий артефакт и запустить]
-  Start --> Dev[для разработки: npm i && npm run dev]
+  Start --> Dev[для разработки: npm i && npm run backend && npm run desktop:client]
   Start --> Docker
   Docker --> MacOs
   Docker --> Linux
@@ -50,6 +76,15 @@ npm run dev
 
 В контейнере поднимается виртуальный X-сервер (`Xvfb`) и `noVNC`, поэтому для данного режима 
 установка `XQuartz`/`xhost` на macOS не требуется, но все выглядит просто ужасно.
+
+### Web-версия в Docker
+
+```bash
+docker compose -f docker-compose.web.yml up --build --force-recreate
+```
+
+Открыть:
+- `http://localhost:3010`
 
 ### Вариант с XQuartz (без noVNC)
 Если нужен вывод окна Electron напрямую в XQuartz

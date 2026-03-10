@@ -44,7 +44,9 @@ const state = {
     theme: "light",
     language: "ru",
     timerTickingEnabled: "0",
-    markdownExtendedEnabled: "1"
+    markdownExtendedEnabled: "1",
+    clientAutoRefreshEnabled: "1",
+    clientAutoRefreshIntervalSec: "3"
   },
   language: "ru",
   timer: {
@@ -106,6 +108,8 @@ const api = window.api
       }
     }
   );
+
+const canChooseDbProfilePath = typeof api.chooseDbProfilePath === "function";
 
 const I18N = {
   ru: {
@@ -186,6 +190,8 @@ const I18N = {
     saveSettings: "Сохранить настройки",
     timerTicking: "Тиканье таймера",
     markdownExtended: "Расширенный Markdown",
+    refreshNow: "Обновить сейчас",
+    autoRefreshClients: "Автообновление клиентов",
     countdownTitle: "Отсчет",
     sessionFinished: "Помидор завершен",
     startBreak: "Перерыв"
@@ -286,6 +292,8 @@ const I18N = {
     language: "Language",
     saveSettings: "Save settings",
     timerTicking: "Timer ticking sound",
+    refreshNow: "Refresh now",
+    autoRefreshClients: "Auto-refresh clients",
     countdownTitle: "Countdown",
     sessionFinished: "Pomodoro finished",
     startBreak: "Break"
@@ -594,11 +602,16 @@ const els = {
   settingsDbCreateBtn: document.getElementById("settings-db-create-btn"),
   settingsDbPickBtn: document.getElementById("settings-db-pick-btn"),
   settingsDbActivateBtn: document.getElementById("settings-db-activate-btn"),
-  settingsDbCurrent: document.getElementById("settings-db-current")
+  settingsDbCurrent: document.getElementById("settings-db-current"),
+  syncRefreshBtn: document.getElementById("sync-refresh-btn"),
+  syncAutoRefreshEnabled: document.getElementById("sync-auto-refresh-enabled")
 };
 
 let markdownRendererConfigured = false;
 let systemThemeMediaQuery = null;
+let syncPollIntervalId = null;
+let syncLastRevision = 0;
+let syncRequestInFlight = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -1363,8 +1376,8 @@ async function openArchiveTaskViewModal(archiveRow) {
 
   const dateLines = [
     t("scheduledAt") + ": " + (formatDateTime(task?.scheduled_at || row.scheduled_at) || "-"),
-    t("archiveDateStart") + ": " + (formatDate(task?.start_date || row.start_date) || "-"),
-    t("archiveDateEnd") + ": " + (formatDate(task?.end_date || row.end_date) || "-"),
+    t("archiveDateStart") + ": " + (formatDateTime(task?.start_date || row.start_date) || "-"),
+    t("archiveDateEnd") + ": " + (formatDateTime(task?.end_date || row.end_date) || "-"),
     t("archiveDateCompleted") + ": " + (formatDate(row.completed_at) || "-"),
     t("archiveDateArchived") + ": " + (formatDate(row.archived_at) || "-")
   ];
@@ -2072,8 +2085,8 @@ function renderTaskCard(task) {
     task.category_name ? `<span>${escapeHtml(`@${task.category_name}`)}</span>` : "",
     task.priority ? `<span>${escapeHtml(`P:${task.priority}`)}</span>` : "",
     task.scheduled_at ? `<span>${escapeHtml(`${t("scheduledAt")}: ${formatDateTime(task.scheduled_at)}`)}</span>` : "",
-    task.start_date ? `<span>${escapeHtml(`${state.language === "ru" ? "Старт" : "Start"}: ${task.start_date}`)}</span>` : "",
-    task.end_date ? `<span>${escapeHtml(`${state.language === "ru" ? "Финиш" : "End"}: ${task.end_date}`)}</span>` : "",
+    task.start_date ? `<span>${escapeHtml(`${state.language === "ru" ? "Старт" : "Start"}: ${formatDateTime(task.start_date)}`)}</span>` : "",
+    task.end_date ? `<span>${escapeHtml(`${state.language === "ru" ? "Финиш" : "End"}: ${formatDateTime(task.end_date)}`)}</span>` : "",
     `<span class="pomodoro-meta-counter">${pomodoroIcon}<span>${escapeHtml(`${task.spent_pomodoros}/${task.planned_pomodoros}`)}</span></span>`,
     attrs ? `<span>${escapeHtml(attrs)}</span>` : ""
   ]
@@ -2450,8 +2463,8 @@ function fillTaskForm(task) {
   els.taskDescription.value = task.description_md || "";
   els.taskProject.value = task.project_name || "";
   els.taskPriority.value = task.priority || "";
-  els.taskStartDate.value = task.start_date || "";
-  els.taskEndDate.value = task.end_date || "";
+  els.taskStartDate.value = isoToLocalDateTimeInput(task.start_date || "");
+  els.taskEndDate.value = isoToLocalDateTimeInput(task.end_date || "");
   if (els.taskScheduledAt) els.taskScheduledAt.value = isoToLocalDateTimeInput(task.scheduled_at || "");
   els.taskPlanned.value = String(task.planned_pomodoros || 0);
   els.taskSpent.value = String(task.spent_pomodoros || 0);
@@ -2509,14 +2522,14 @@ function parseFormTaskPayload() {
     projectName: els.taskProject.value.trim(),
     categoryIds: normalizeIdArray(state.taskCategoryIds || []),
     priority: els.taskPriority.value || null,
-    startDate: els.taskStartDate.value || null,
-    endDate: els.taskEndDate.value || null,
+    startDate: localDateTimeInputToIso(els.taskStartDate.value || ""),
+    endDate: localDateTimeInputToIso(els.taskEndDate.value || ""),
     scheduledAt: localDateTimeInputToIso(els.taskScheduledAt?.value || ""),
     plannedPomodoros: Number(els.taskPlanned.value || 0),
     spentPomodoros: Number(els.taskSpent.value || 0),
     color: els.taskColor.value || "#7dd3fc",
     attributes: parseAttributesText(els.taskAttributes.value),
-    isCompleted: !!(els.taskEndDate.value || "").trim()
+    isCompleted: !!localDateTimeInputToIso(els.taskEndDate.value || "")
   };
 }
 
@@ -2630,8 +2643,8 @@ function updateTimerView() {
       active.project_name ? `#${active.project_name}` : "",
       active.category_name ? `@${active.category_name}` : "",
       active.priority ? `P:${active.priority}` : "",
-      active.start_date ? `${state.language === "ru" ? "Старт" : "Start"}: ${active.start_date}` : "",
-      active.end_date ? `${state.language === "ru" ? "Финиш" : "End"}: ${active.end_date}` : ""
+      active.start_date ? `${state.language === "ru" ? "Старт" : "Start"}: ${formatDateTime(active.start_date)}` : "",
+      active.end_date ? `${state.language === "ru" ? "Финиш" : "End"}: ${formatDateTime(active.end_date)}` : ""
     ]
       .filter(Boolean)
       .join(" | ");
@@ -3458,6 +3471,9 @@ function applySettingsToForm() {
   if (els.settingsMarkdownExtendedEnabled) {
     els.settingsMarkdownExtendedEnabled.checked = isExtendedMarkdownEnabled();
   }
+  if (els.syncAutoRefreshEnabled) {
+    els.syncAutoRefreshEnabled.checked = isClientAutoRefreshEnabled();
+  }
 
   state.language = state.settings.language || "ru";
   applyTranslations();
@@ -3474,6 +3490,7 @@ function applySettingsToForm() {
   if (state.board) {
     renderBoard();
   }
+  restartSyncPolling();
 }
 
 function renderDbProfiles() {
@@ -3505,6 +3522,75 @@ async function loadDbProfiles() {
   renderDbProfiles();
 }
 
+function isClientAutoRefreshEnabled() {
+  const raw = String(state.settings?.clientAutoRefreshEnabled ?? "1").toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+function getClientAutoRefreshIntervalMs() {
+  const parsed = Number.parseInt(String(state.settings?.clientAutoRefreshIntervalSec || "3"), 10);
+  const sec = Number.isFinite(parsed) ? Math.min(60, Math.max(2, parsed)) : 3;
+  return sec * 1000;
+}
+
+async function getSyncStateSafe() {
+  if (typeof api.getSyncState !== "function") return null;
+  try {
+    return await api.getSyncState();
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function refreshAllClientViews() {
+  await refreshBoard();
+  if (document.getElementById("tab-backlog")?.classList.contains("active")) {
+    await loadBacklog();
+  }
+  if (document.getElementById("tab-archive")?.classList.contains("active")) {
+    await loadArchive();
+  }
+  if (document.getElementById("tab-analytics")?.classList.contains("active")) {
+    await loadAnalytics();
+  }
+  if (document.getElementById("tab-calendar")?.classList.contains("active")) {
+    await loadCalendar();
+  }
+}
+
+async function pollSyncRevision() {
+  if (syncRequestInFlight || !isClientAutoRefreshEnabled()) return;
+  syncRequestInFlight = true;
+  try {
+    const sync = await getSyncStateSafe();
+    if (!sync) return;
+    const nextRevision = Number(sync.revision || 0);
+    if (nextRevision <= 0) return;
+    if (syncLastRevision === 0) {
+      syncLastRevision = nextRevision;
+      return;
+    }
+    if (nextRevision > syncLastRevision) {
+      syncLastRevision = nextRevision;
+      await refreshAllClientViews();
+      showToast(state.language === "ru" ? "Список задач обновлен" : "Task list updated");
+    }
+  } finally {
+    syncRequestInFlight = false;
+  }
+}
+
+function restartSyncPolling() {
+  if (syncPollIntervalId) {
+    clearInterval(syncPollIntervalId);
+    syncPollIntervalId = null;
+  }
+  if (!isClientAutoRefreshEnabled() || typeof api.getSyncState !== "function") return;
+  syncPollIntervalId = setInterval(() => {
+    void pollSyncRevision();
+  }, getClientAutoRefreshIntervalMs());
+}
+
 async function refreshBoard() {
   const board = await api.loadBoard(state.filters);
   state.board = board;
@@ -3517,6 +3603,11 @@ async function refreshBoard() {
   renderBoard();
   updateHeaderActiveTask();
   updateTimerView();
+
+  const sync = await getSyncStateSafe();
+  if (sync && Number(sync.revision || 0) > 0) {
+    syncLastRevision = Math.max(syncLastRevision, Number(sync.revision || 0));
+  }
 }
 
 function bindEvents() {
@@ -3546,6 +3637,34 @@ function bindEvents() {
     event.preventDefault();
     await submitTodoTxt();
   });
+
+  if (els.syncRefreshBtn) {
+    els.syncRefreshBtn.addEventListener("click", async () => {
+      try {
+        await refreshAllClientViews();
+        const sync = await getSyncStateSafe();
+        if (sync && Number(sync.revision || 0) > 0) {
+          syncLastRevision = Number(sync.revision || 0);
+        }
+        showToast(state.language === "ru" ? "Список задач обновлен вручную" : "Task list refreshed manually");
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
+  }
+
+  if (els.syncAutoRefreshEnabled) {
+    els.syncAutoRefreshEnabled.addEventListener("change", async () => {
+      const enabled = els.syncAutoRefreshEnabled.checked ? "1" : "0";
+      state.settings.clientAutoRefreshEnabled = enabled;
+      restartSyncPolling();
+      try {
+        await api.updateSettings({ clientAutoRefreshEnabled: enabled });
+      } catch (_error) {
+        // Local UI preference should not block interaction.
+      }
+    });
+  }
 
   els.applyFiltersBtn.addEventListener("click", async () => {
     state.filters = {
@@ -4256,7 +4375,18 @@ function bindEvents() {
     });
   }
 
-  if (els.settingsDbCreateBtn) {
+  if (!canChooseDbProfilePath) {
+    if (els.settingsDbCreateBtn) {
+      els.settingsDbCreateBtn.classList.add("hidden");
+      els.settingsDbCreateBtn.disabled = true;
+    }
+    if (els.settingsDbPickBtn) {
+      els.settingsDbPickBtn.classList.add("hidden");
+      els.settingsDbPickBtn.disabled = true;
+    }
+  }
+
+  if (canChooseDbProfilePath && els.settingsDbCreateBtn) {
     els.settingsDbCreateBtn.addEventListener("click", async () => {
       try {
         const dbPath = await api.chooseDbProfilePath();
@@ -4270,7 +4400,7 @@ function bindEvents() {
     });
   }
 
-  if (els.settingsDbPickBtn) {
+  if (canChooseDbProfilePath && els.settingsDbPickBtn) {
     els.settingsDbPickBtn.addEventListener("click", async () => {
       try {
         const dbPath = await api.chooseDbProfilePath();

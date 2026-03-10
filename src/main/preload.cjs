@@ -45,6 +45,7 @@ const api = {
 
   getSettings: () => invoke('settings:get'),
   updateSettings: (patch) => invoke('settings:update', { patch }),
+  getSyncState: () => invoke('sync:get-state'),
   listDbProfiles: () => invoke('db:profiles:list'),
   chooseDbProfilePath: () => invoke('db:profiles:choose-path'),
   addDbProfile: (dbPath) => invoke('db:profiles:add', { dbPath }),

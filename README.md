@@ -9,6 +9,10 @@ Desktop-приложение на `Eletron + SQLite` для управления
 - `Vanilla JS (ES modules)` (интерфейс)
 - `better-sqlite3` (локальная БД SQLite)
 
+Backend API документация:
+- `docs/backend-api.md`
+- `docs/backend-api.openapi.yaml` (Swagger/OpenAPI)
+
 ## Единый backend + 2 клиента
 
 Запуск backend (SQLite + бизнес-логика):

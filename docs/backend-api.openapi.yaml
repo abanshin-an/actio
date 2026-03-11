@@ -1,0 +1,218 @@
+openapi: 3.0.3
+info:
+  title: actio Backend API
+  version: 0.1.0
+  description: |
+    HTTP API для actio web-backend.
+    Основной RPC endpoint: POST /api/invoke.
+servers:
+  - url: http://localhost:3010
+    description: Local default
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Backend is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                ok: true
+                data:
+                  status: ok
+
+  /api/invoke:
+    post:
+      summary: Invoke backend channel
+      operationId: invokeChannel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvokeRequest"
+            examples:
+              loadBoard:
+                summary: Load board
+                value:
+                  channel: board:load
+                  payload: {}
+              updateTask:
+                summary: Update task subject
+                value:
+                  channel: tasks:update
+                  payload:
+                    taskId: 1
+                    patch:
+                      subject: Updated from API
+      responses:
+        "200":
+          description: Successful channel execution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Validation or business error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/timer-state:
+    post:
+      summary: Update timer runtime state
+      operationId: updateTimerState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimerStatePayload"
+            example:
+              running: true
+              kind: work
+              taskId: 12
+              sessionStartedAt: "2026-03-11T09:00:00.000Z"
+              remainingSec: 1200
+              plannedDurationSec: 1500
+      responses:
+        "200":
+          description: Timer state accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+              example:
+                ok: true
+                data: true
+        "400":
+          description: Validation or business error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              example: ok
+
+    OkResponse:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        data:
+          description: Channel-specific payload
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required: [ok, error]
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+          example: Task not found
+
+    InvokeRequest:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          $ref: "#/components/schemas/ChannelName"
+        payload:
+          type: object
+          description: |
+            Payload зависит от канала.
+            Для части каналов допускается пустой объект.
+          additionalProperties: true
+          default: {}
+
+    TimerStatePayload:
+      type: object
+      properties:
+        running:
+          type: boolean
+        kind:
+          type: string
+          enum: [work, break]
+        taskId:
+          type: integer
+          nullable: true
+        sessionStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+        remainingSec:
+          type: integer
+          minimum: 0
+        plannedDurationSec:
+          type: integer
+          minimum: 0
+
+    ChannelName:
+      type: string
+      enum:
+        - board:load
+        - columns:create
+        - columns:delete
+        - columns:reorder
+        - projects:list
+        - projects:create
+        - categories:list
+        - categories:create
+        - tasks:create
+        - tasks:update
+        - tasks:delete
+        - tasks:move
+        - tasks:reorder
+        - tasks:get
+        - tasks:set-active
+        - tasks:clear-active
+        - tasks:complete
+        - tasks:interrupt
+        - tasks:increment-spent
+        - backlog:add
+        - backlog:list
+        - backlog:move
+        - todotxt:add
+        - pomodoro:record
+        - calendar:sessions
+        - calendar:scheduled
+        - settings:get
+        - settings:update
+        - db:profiles:list
+        - db:profiles:choose-path
+        - db:profiles:add
+        - db:profiles:create-empty
+        - db:profiles:select
+        - analytics:get
+        - archive:list
+        - archive:clone-to-inbox
+        - archive:delete
+        - sync:get-state
+        - shell:open-external
+        - app:startup-state
+        - timer:state

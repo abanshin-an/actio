@@ -1,0 +1,23 @@
+services:
+  actio-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: actio:web
+    container_name: actio-web
+    user: "0:0"
+    environment:
+      ACTIO_HOST: "0.0.0.0"
+      ACTIO_PORT: "3010"
+      ACTIO_DATA_DIR: "/data"
+    command: npm run web
+    ports:
+      - "3010:3010"
+    volumes:
+      - actio-web-data:/data
+    stdin_open: true
+    tty: true
+    restart: "no"
+
+volumes:
+  actio-web-data:

@@ -1,0 +1,63 @@
+name: Build Installers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS DMG x64 (Intel)
+            os: macos-13
+            script: npm run dist:mac:x64
+            artifact: macos-intel-installer
+          - name: macOS DMG arm64 (Apple Silicon)
+            os: macos-14
+            script: npm run dist:mac:arm64
+            artifact: macos-arm64-installer
+          - name: Windows NSIS x64 (Intel)
+            os: windows-latest
+            script: npm run dist:win:x64
+            artifact: windows-intel-installer
+          - name: Windows NSIS arm64
+            os: windows-latest
+            script: npm run dist:win:arm64
+            artifact: windows-arm64-installer
+          - name: Linux AppImage/DEB x64 (Intel)
+            os: ubuntu-latest
+            script: npm run dist:linux:x64
+            artifact: linux-intel-installer
+          - name: Linux AppImage/DEB arm64
+            os: ubuntu-24.04-arm
+            script: npm run dist:linux:arm64
+            artifact: linux-arm64-installer
+
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installers
+        run: ${{ matrix.script }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/**
+          if-no-files-found: error

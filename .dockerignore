@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+release
+.git
+.github
+.idea
+.DS_Store
+actio.sqlite
+actio_1.sqlite
